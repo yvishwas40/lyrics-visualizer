@@ -2,3 +2,4 @@ streamlit
 lyricsgenius
 wordcloud
 matplotlib
+python-dotenv
