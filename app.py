@@ -17,12 +17,39 @@ def search_song(song_title):
     return None
 
 def scrape_lyrics(url):
-    page = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-    soup = BeautifulSoup(page.text, "html.parser")
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch lyrics page: {response.status_code}")
+    
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    # First: Try grabbing from divs with class starting with Lyrics__Container
     containers = soup.select("div[class^='Lyrics__Container']")
-    if not containers:
-        return None
-    return "\n".join([c.get_text(separator="\n").strip() for c in containers])
+    if containers:
+        lyrics = "\n".join([c.get_text(separator="\n").strip() for c in containers])
+        if lyrics.strip():
+            return lyrics
+
+    # Second: Try grabbing from the older 'lyrics' class
+    old_div = soup.find("div", class_="lyrics")
+    if old_div:
+        lyrics = old_div.get_text(separator="\n").strip()
+        if lyrics.strip():
+            return lyrics
+
+    # Third: Fallback - look through all <section> tags for large text blocks
+    sections = soup.find_all("section")
+    long_texts = [
+        s.get_text(separator="\n").strip() for s in sections
+        if len(s.get_text().split()) > 30  # crude filter to avoid nav bars etc.
+    ]
+    if long_texts:
+        return "\n".join(long_texts)
+
+    return None  # Nothing found
 
 # UI
 st.set_page_config(page_title="🎤 Taylor Swift Lyrics Visualizer")
