@@ -4,10 +4,8 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import re
 import os
-# from dotenv import load_dotenv
 
-# # --- Load .env token securely ---
-# load_dotenv()
+# --- Load Genius API Token from Streamlit secrets ---
 GENIUS_API_TOKEN = st.secrets["GENIUS_API_TOKEN"]
 
 # --- Genius API Setup ---
@@ -19,30 +17,30 @@ genius = lyricsgenius.Genius(
 )
 
 # ✅ Set a custom browser-like User-Agent to avoid 403 errors
-genius.headers["User-Agent"] = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/113.0.0.0 Safari/537.36"
-)
+genius._session.headers.update({
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/113.0.0.0 Safari/537.36"
+    )
+})
 
-# --- Helper Function ---
-
+# --- Helper Function to Clean Lyrics ---
 def clean_lyrics(lyrics):
     # Remove [Verse], [Chorus], etc.
     lyrics = re.sub(r"\[.*?\]", "", lyrics)
 
-    # Remove contributor lines, translation credits, or metadata (e.g., first few lines if non-lyrical)
+    # Split into lines and remove noise at top/bottom
     lines = lyrics.strip().splitlines()
 
-    # Heuristically drop top and bottom if they contain metadata
-    # Remove any lines before the first actual lyric (often starts with pronouns, articles, etc.)
+    # Find where real lyrics likely start
     start_index = 0
     for i, line in enumerate(lines):
         if re.search(r"\b(we|i|you|this|the|and|a|my|can|do|let|have|'t|could|'s)\b", line.lower()):
             start_index = i
             break
 
-    # Remove common footer noise (e.g., last 2–4 lines with "Embed", etc.)
+    # Remove "Embed", "Contributors", etc. from bottom
     end_index = len(lines)
     for i in range(len(lines) - 1, -1, -1):
         if "embed" in lines[i].lower() or "contributor" in lines[i].lower():
@@ -50,12 +48,10 @@ def clean_lyrics(lyrics):
         else:
             break
 
-    # Keep only the clean middle part
     lines = lines[start_index:end_index]
 
-    # Final trim and blank line removal
+    # Final formatting
     cleaned = "\n".join([line.strip() for line in lines if line.strip()])
-
     return cleaned
 
 # --- UI ---
@@ -66,6 +62,7 @@ st.markdown("Enter a **Taylor Swift** song title to see the lyrics and a beautif
 # --- Input ---
 song_title = st.text_input("🎵 Song Title", placeholder="e.g., Love Story")
 
+# --- Main Logic ---
 if song_title:
     with st.spinner("Fetching lyrics..."):
         try:
@@ -76,7 +73,6 @@ if song_title:
                 st.subheader("🎧 Clean Lyrics")
                 st.text_area("Lyrics", value=cleaned_lyrics, height=300)
 
-                # --- Word Cloud ---
                 st.subheader("☁️ Word Cloud")
                 wordcloud = WordCloud(
                     width=800,
