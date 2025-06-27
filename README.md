@@ -1,14 +1,13 @@
-# 🎤 Taylor Swift Lyrics Visualizer
+# 🎤 Lyrics Visualizer (ChartLyrics)
 
-This Streamlit app lets you enter any Taylor Swift song title, fetches the lyrics using the Genius API, and visualizes them as a word cloud.
+A Streamlit app that fetches full song lyrics from **Taylor Swift** using the **ChartLyrics API**, then creates a Word Cloud visualization.
 
-## 🚀 Features
-- Genius API integration for lyrics
-- Interactive Streamlit interface
-- Word cloud visualization using WordCloud + matplotlib
+## 🔗 Live Demo
 
-## 🧠 How to Run
-1. Clone the repo
-2. Install dependencies:
+Deployed on Streamlit Community Cloud: `[Your App URL]`
+
+## 🚀 How to Use
+
+1. Clone the repo:
    ```bash
-   pip install -r requirements.txt
+   git clone … && cd lyrics-visualizer

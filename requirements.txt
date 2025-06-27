@@ -1,5 +1,4 @@
 streamlit
-lyricsgenius
+requests
 wordcloud
 matplotlib
-python-dotenv
