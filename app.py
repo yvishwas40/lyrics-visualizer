@@ -1,91 +1,72 @@
 import streamlit as st
-import lyricsgenius
+import requests
+from bs4 import BeautifulSoup
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import re
-import os
 
-# --- Load Genius API Token from Streamlit secrets ---
 GENIUS_API_TOKEN = st.secrets["GENIUS_API_TOKEN"]
 
-# --- Genius API Setup ---
-genius = lyricsgenius.Genius(
-    GENIUS_API_TOKEN,
-    skip_non_songs=True,
-    excluded_terms=["(Remix)", "(Live)"],
-    remove_section_headers=True
-)
+def search_song(song_title):
+    base_url = "https://api.genius.com/search"
+    headers = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"}
+    params = {"q": f"{song_title} Taylor Swift"}
 
-# ✅ Set a custom browser-like User-Agent to avoid 403 errors
-genius._session.headers.update({
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/113.0.0.0 Safari/537.36"
-    )
-})
+    response = requests.get(base_url, headers=headers)
+    if response.status_code != 200:
+        raise Exception(f"Search failed: {response.status_code}")
+    
+    data = response.json()
+    hits = data["response"]["hits"]
+    if hits:
+        return hits[0]["result"]["url"]  # Genius lyrics page URL
+    return None
 
-# --- Helper Function to Clean Lyrics ---
+def scrape_lyrics(url):
+    page = requests.get(url, headers={
+        "User-Agent": "Mozilla/5.0"
+    })
+    soup = BeautifulSoup(page.text, "html.parser")
+    lyrics_div = soup.find("div", class_="lyrics")
+    
+    if not lyrics_div:
+        # New Genius layout
+        containers = soup.select("div[class^='Lyrics__Container']")
+        lyrics = "\n".join([c.get_text(separator="\n") for c in containers])
+    else:
+        lyrics = lyrics_div.get_text()
+
+    return lyrics
+
 def clean_lyrics(lyrics):
-    # Remove [Verse], [Chorus], etc.
     lyrics = re.sub(r"\[.*?\]", "", lyrics)
-
-    # Split into lines and remove noise at top/bottom
     lines = lyrics.strip().splitlines()
+    lines = [line.strip() for line in lines if line.strip()]
+    return "\n".join(lines)
 
-    # Find where real lyrics likely start
-    start_index = 0
-    for i, line in enumerate(lines):
-        if re.search(r"\b(we|i|you|this|the|and|a|my|can|do|let|have|'t|could|'s)\b", line.lower()):
-            start_index = i
-            break
-
-    # Remove "Embed", "Contributors", etc. from bottom
-    end_index = len(lines)
-    for i in range(len(lines) - 1, -1, -1):
-        if "embed" in lines[i].lower() or "contributor" in lines[i].lower():
-            end_index = i
-        else:
-            break
-
-    lines = lines[start_index:end_index]
-
-    # Final formatting
-    cleaned = "\n".join([line.strip() for line in lines if line.strip()])
-    return cleaned
-
-# --- UI ---
-st.set_page_config(page_title="🎤 Taylor Swift Lyrics Visualizer", layout="centered")
+# --- Streamlit UI ---
+st.set_page_config(page_title="🎤 Taylor Swift Lyrics Visualizer")
 st.title("🎶 Sing with Streamlit: Taylor Swift Lyrics Visualizer")
-st.markdown("Enter a **Taylor Swift** song title to see the lyrics and a beautiful word cloud!")
+song_title = st.text_input("🎵 Enter Song Title", "Love Story")
 
-# --- Input ---
-song_title = st.text_input("🎵 Song Title", placeholder="e.g., Love Story")
-
-# --- Main Logic ---
 if song_title:
     with st.spinner("Fetching lyrics..."):
         try:
-            song = genius.search_song(song_title, artist="Taylor Swift")
-            if song and song.lyrics:
-                cleaned_lyrics = clean_lyrics(song.lyrics)
-
+            url = search_song(song_title)
+            if url:
+                raw_lyrics = scrape_lyrics(url)
+                lyrics = clean_lyrics(raw_lyrics)
+                
                 st.subheader("🎧 Clean Lyrics")
-                st.text_area("Lyrics", value=cleaned_lyrics, height=300)
+                st.text_area("Lyrics", value=lyrics, height=300)
 
                 st.subheader("☁️ Word Cloud")
-                wordcloud = WordCloud(
-                    width=800,
-                    height=400,
-                    background_color="white",
-                    colormap="twilight"
-                ).generate(cleaned_lyrics)
-
-                fig, ax = plt.subplots(figsize=(10, 5))
+                wordcloud = WordCloud(width=800, height=400, background_color="white").generate(lyrics)
+                fig, ax = plt.subplots()
                 ax.imshow(wordcloud, interpolation='bilinear')
                 ax.axis("off")
                 st.pyplot(fig)
             else:
-                st.error("No lyrics found for this song.")
+                st.error("No results found.")
         except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
+            st.error(f"An error occurred: {e}")
