@@ -17,6 +17,14 @@ genius = lyricsgenius.Genius(
     excluded_terms=["(Remix)", "(Live)"],
     remove_section_headers=True
 )
+
+# ✅ Set a custom browser-like User-Agent to avoid 403 errors
+genius.headers["User-Agent"] = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/113.0.0.0 Safari/537.36"
+)
+
 # --- Helper Function ---
 
 def clean_lyrics(lyrics):
