@@ -1,6 +1,6 @@
-# 🎤 Lyrics Visualizer (ChartLyrics)
+# 🎤 Lyrics Visualizer (Genius API)
 
-A Streamlit app that fetches full song lyrics from **Taylor Swift** using the **ChartLyrics API**, then creates a Word Cloud visualization.
+A Streamlit app that fetches full song lyrics from **Taylor Swift** using the **Genius API**, then creates a Word Cloud visualization.
 
 ## 🔗 Live Demo
 
