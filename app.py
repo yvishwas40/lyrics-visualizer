@@ -4,11 +4,11 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 import re
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-# --- Load .env token securely ---
-load_dotenv()
-GENIUS_API_TOKEN = os.getenv("GENIUS_API_TOKEN")
+# # --- Load .env token securely ---
+# load_dotenv()
+GENIUS_API_TOKEN = st.secrets["GENIUS_API_TOKEN"]
 
 # --- Genius API Setup ---
 genius = lyricsgenius.Genius(
