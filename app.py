@@ -10,17 +10,22 @@ GENIUS_API_TOKEN = st.secrets["GENIUS_API_TOKEN"]
 def search_song(song_title):
     base_url = "https://api.genius.com/search"
     headers = {"Authorization": f"Bearer {GENIUS_API_TOKEN}"}
-    params = {"q": f"{song_title} Taylor Swift"}
+    params = {"q": song_title}
 
-    response = requests.get(base_url, headers=headers)
+    response = requests.get(base_url, headers=headers, params=params)
     if response.status_code != 200:
         raise Exception(f"Search failed: {response.status_code}")
     
     data = response.json()
     hits = data["response"]["hits"]
-    if hits:
-        return hits[0]["result"]["url"]  # Genius lyrics page URL
+
+    for hit in hits:
+        artist_name = hit["result"]["primary_artist"]["name"].lower()
+        if "taylor swift" in artist_name:
+            return hit["result"]["url"]
+
     return None
+
 
 def scrape_lyrics(url):
     page = requests.get(url, headers={
